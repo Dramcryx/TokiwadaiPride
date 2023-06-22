@@ -23,8 +23,8 @@ namespace TokiwadaiPride
         private readonly ITelegramBotClient _botClient;
         private readonly ILogger<ExpenseHandler> _logger;
 
-        private Dictionary<string, Func<ITelegramBotClient, long, string, CancellationToken, Task>> _commandHandlers =
-            new Dictionary<string, Func<ITelegramBotClient, long, string, CancellationToken, Task>>();
+        private Dictionary<string, Func<ITelegramBotClient, long, DateTime, string, CancellationToken, Task>> _commandHandlers =
+            new Dictionary<string, Func<ITelegramBotClient, long, DateTime, string, CancellationToken, Task>>();
 
         private DatabaseClient _databaseClient = new DatabaseClient();
 
@@ -59,16 +59,24 @@ namespace TokiwadaiPride
         {
             string? text = null;
             long chatId = -1;
+            DateTime? when = null;
             if (update.Message != null)
             {
                 text = update.Message.Text;
                 chatId = update.Message.Chat.Id;
+                when = update.Message.Date;
             }
 
             if (update.EditedMessage != null)
             {
                 text = update.EditedMessage.Text;
                 chatId = update.EditedMessage.Chat.Id;
+                when = update.EditedMessage.EditDate;
+            }
+
+            if (when == null)
+            {
+                throw new ArgumentException("Неизвестная команда");
             }
 
             if (text == null)
@@ -77,6 +85,10 @@ namespace TokiwadaiPride
             }
 
             var messageParts = text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (messageParts == null)
+            {
+                throw new ArgumentException("Не смогла разобрать строку");
+            }
             if (messageParts.Length == 0)
             {
                 await _botClient.SendTextMessageAsync(chatId, $"\"Кривое сообщение '{update.Message}'\" - cказал Мисака-Мисака, недовольная тупостью пользователя");
@@ -89,7 +101,7 @@ namespace TokiwadaiPride
                 return;
             }
 
-            await _commandHandlers[messageParts[0]](_botClient, chatId, messageParts.Length > 1 ? messageParts[1] : null, cancellationToken);
+            await _commandHandlers[messageParts[0]](_botClient, chatId, when.Value, messageParts.Length > 1 ? messageParts[1] : null, cancellationToken);
         }
 
         public Task HandlePollingErrorAsync(ITelegramBotClient _, Exception exception, CancellationToken cancellationToken)
@@ -105,7 +117,12 @@ namespace TokiwadaiPride
             return Task.CompletedTask;
         }
 
-        private async Task HandleStartAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleStartAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             string message = $"Принимаю несколько команд\n" +
                 $"{StartCommand} - Показать это же сообщение ещё раз\n\n" +
@@ -120,7 +137,12 @@ namespace TokiwadaiPride
             await _botClient.SendTextMessageAsync(chatId, message);
         }
 
-        private async Task HandleAddExpenseAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleAddExpenseAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime when,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -130,7 +152,7 @@ namespace TokiwadaiPride
                     return;
                 }
 
-                await _databaseClient.AddExpenseAsync(chatId, DateTime.Now, name, value);
+                await _databaseClient.AddExpenseAsync(chatId, when, name, value);
 
                 await _botClient.SendTextMessageAsync(chatId, $"\"Ты серьёзно потратил {value} на '{name}'?\" - надменно спросила Мисака-Мисака");
             }
@@ -140,7 +162,12 @@ namespace TokiwadaiPride
             }
         }
 
-        private async Task HandleAddExpenseForDateAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleAddExpenseForDateAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -174,7 +201,12 @@ namespace TokiwadaiPride
             }
         }
 
-        private async Task HandleListExpensesAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleListExpensesAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -208,7 +240,12 @@ namespace TokiwadaiPride
             }
         }
 
-        private async Task HandleGetExpensesStatisticsAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleGetExpensesStatisticsAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -242,7 +279,12 @@ namespace TokiwadaiPride
             }
         }
 
-        private async Task HandleDeleteLastAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleDeleteLastAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             var deletedExpense = await _databaseClient.DeleteLastExpenseAsync(chatId);
 
@@ -250,7 +292,12 @@ namespace TokiwadaiPride
                 deletedExpense != null ? $"Удалила запись {deletedExpense}" : "Нет записей");
         }
 
-        private async Task HandleTodayAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleTodayAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -265,7 +312,12 @@ namespace TokiwadaiPride
             }
         }
 
-        private async Task HandleYesterayAsync(ITelegramBotClient _, long chatId, string text, CancellationToken cancellationToken)
+        private async Task HandleYesterayAsync(
+            ITelegramBotClient _,
+            long chatId,
+            DateTime __,
+            string text,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -296,20 +348,23 @@ namespace TokiwadaiPride
             return (input.Substring(0, splitter), await ParseExpressionAsync(input.Substring(splitter + 1)));
         }
 
-        private static async Task<double> ParseExpressionAsync(string input)
+        private static Task<double> ParseExpressionAsync(string input)
         {
-            if (input == null)
+            return Task.Run(()=>
             {
-                throw new ArgumentNullException(nameof(input));
-            }
+                if (input == null)
+                {
+                    throw new ArgumentNullException(nameof(input));
+                }
 
-            var dataTable = new DataTable();
-            dataTable.Columns.Add("input", string.Empty.GetType(), input);
+                var dataTable = new DataTable();
+                dataTable.Columns.Add("input", string.Empty.GetType(), input);
 
-            var row = dataTable.NewRow();
-            dataTable.Rows.Add(row);
+                var row = dataTable.NewRow();
+                dataTable.Rows.Add(row);
 
-            return double.Parse((string)row["input"]);
+                return double.Parse((string)row["input"]);
+            });
         }
 
         private static string ExpensesGrouppingToString(IGrouping<DateTime, Expense> x)
