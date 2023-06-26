@@ -13,6 +13,8 @@ namespace TokiwadaiPride.Database
         private static readonly string NameColumn = "name";
         private static readonly string CostColumn = "cost";
 
+        private static readonly int Limit = 1000;
+
         private readonly ILogger<Database> _logger;
         private long _chatId;
         private SqliteConnection _connection;
@@ -61,7 +63,7 @@ namespace TokiwadaiPride.Database
             getExpensesCommand.CommandText =
                  $@"
                     SELECT {DateColumn}, {NameColumn}, {CostColumn}
-                    FROM {MainTable}
+                    FROM {MainTable} LIMIT {Limit};
                  ";
             return await getExpensesCommand.ExecuteReaderAsync();
         }
@@ -75,6 +77,7 @@ namespace TokiwadaiPride.Database
                     SELECT {DateColumn}, {NameColumn}, {CostColumn}
                     FROM {MainTable}
                     WHERE {DateColumn} BETWEEN '{ToSQLiteDate(from)}' AND '{ToSQLiteDate(to)}'
+                    LIMIT {Limit};
                 ";
 
             return await getExpensesCommand.ExecuteReaderAsync();
@@ -88,9 +91,9 @@ namespace TokiwadaiPride.Database
             addExpenseCommand.CommandText =
                 $@"
                     INSERT INTO {MainTable} ({DateColumn}, {NameColumn}, {CostColumn})
-                    VALUES ('{ToSQLiteDate(date)}', '{name}', {expense.ToString().Replace(',', '.')})
+                    VALUES ('{ToSQLiteDate(date)}', @NAME, {expense.ToString().Replace(',', '.')});
                 ";
-            ;
+            addExpenseCommand.Parameters.AddWithValue("@NAME", name);
 
             return 1 == await addExpenseCommand.ExecuteNonQueryAsync();
         }
@@ -102,7 +105,7 @@ namespace TokiwadaiPride.Database
             var getLastIdCommand = _connection.CreateCommand();
             getLastIdCommand.CommandText =
                 $@"
-                    SELECT MAX({IdColumn}) FROM {MainTable}
+                    SELECT MAX({IdColumn}) FROM {MainTable};
                 ";
 
             try
@@ -117,14 +120,14 @@ namespace TokiwadaiPride.Database
                          $@"
                             SELECT {DateColumn}, {NameColumn}, {CostColumn}
                             FROM {MainTable}
-                            WHERE {IdColumn} == {maxId}
+                            WHERE {IdColumn} == {maxId};
                          ";
                     var returnValue = await getLastExpense.ExecuteReaderAsync();
 
                     var deleteLastExpenseCommand = _connection.CreateCommand();
                     deleteLastExpenseCommand.CommandText =
                         $@"
-                            DELETE FROM {MainTable} WHERE {IdColumn} == {maxId}
+                            DELETE FROM {MainTable} WHERE {IdColumn} == {maxId};
                         ";
 
                     await deleteLastExpenseCommand.ExecuteNonQueryAsync();
