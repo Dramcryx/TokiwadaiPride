@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace TokiwadaiPride.Types;
+﻿namespace TokiwadaiPride.Types;
 
 public class Expense
 {

@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System;
-using System.Threading.Tasks;
 using Telegram.Bot;
 using TokiwadaiPride;
 using TokiwadaiPride.Contract;

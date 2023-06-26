@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-
-namespace TokiwadaiPride.Types;
+﻿namespace TokiwadaiPride.Types;
 public class ExpensesStatistics
 {
     public double Total { get; private set; }

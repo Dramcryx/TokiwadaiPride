@@ -1,6 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System;
-using System.Threading.Tasks;
 
 namespace TokiwadaiPride.Contract;
 
