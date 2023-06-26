@@ -1,8 +1,11 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using TokiwadaiPride.Types;
 
-namespace TokiwadaiPride.Database
+namespace TokiwadaiPride.Bot.Database
 {
     public class DatabaseClient
     {

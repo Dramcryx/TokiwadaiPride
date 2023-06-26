@@ -1,13 +1,14 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using System;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using TokiwadaiPride;
-using Microsoft.Extensions.Options;
+using TokiwadaiPride.Contract;
 
 public class Program
 {
-    private static CancellationToken _globalCancel = new CancellationToken();
-
     public static async Task Main(string[] args)
     {
         var host = Host.CreateDefaultBuilder(args)
@@ -15,7 +16,7 @@ public class Program
             {
                 services.Configure<BotConfiguration>(
                     context.Configuration.GetSection(BotConfiguration.Configuration));
-                services.AddHttpClient("telegram_bot_client")
+                services.AddHttpClient("TokiwadaiPride.Bot.Client")
                         .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
                         {
                             BotConfiguration? botConfig = sp.GetService<IOptions<BotConfiguration>>()?.Value;
@@ -27,7 +28,7 @@ public class Program
                             return new TelegramBotClient(options, httpClient);
                         });
                 
-                services.AddScoped<ExpenseHandler>();
+                services.AddScoped<IExpenseHandler, ExpenseHandler>();
                 services.AddScoped<ReceiverService>();
                 services.AddHostedService<TokiwadaiPride.BackgroundService>();
             })

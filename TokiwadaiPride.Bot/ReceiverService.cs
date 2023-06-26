@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Logging;
+using System.Threading;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using TokiwadaiPride.Contract;
 
 namespace TokiwadaiPride;
 
@@ -14,7 +17,7 @@ public class ReceiverService
 
     public ReceiverService(
         ITelegramBotClient botClient,
-        ExpenseHandler updateHandler,
+        IExpenseHandler updateHandler,
         ILogger<ReceiverService> logger)
     {
         _botClient = botClient;

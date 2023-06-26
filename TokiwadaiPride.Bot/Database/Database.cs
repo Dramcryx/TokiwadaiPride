@@ -1,7 +1,10 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace TokiwadaiPride.Database
+namespace TokiwadaiPride.Bot.Database
 {
     internal class Database
     {
@@ -140,7 +143,6 @@ namespace TokiwadaiPride.Database
                 _logger.LogWarning(ex.ToString());
                 return null;
             }
-
         }
 
         private static string ToSQLiteDate(DateTime date)

@@ -1,4 +1,6 @@
-namespace TokiwadaiPride;
+using System;
+
+namespace TokiwadaiPride.Types;
 
 public struct UpdateContext
 {

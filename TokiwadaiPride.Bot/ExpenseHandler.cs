@@ -1,15 +1,20 @@
 ﻿using System.Data;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
-using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
-using TokiwadaiPride.Database;
+using TokiwadaiPride.Bot.Database;
+using TokiwadaiPride.Contract;
 using TokiwadaiPride.Types;
 
 namespace TokiwadaiPride
 {
-    public class ExpenseHandler : IUpdateHandler
+    public class ExpenseHandler : IExpenseHandler
     {
         public static readonly string StartCommand = "/start";
         public static readonly string AddExpenseCommand = "/add";
@@ -117,6 +122,11 @@ namespace TokiwadaiPride
 
             Console.WriteLine(ErrorMessage);
             return Task.CompletedTask;
+        }
+
+        public (BotCommandScope, IEnumerable<BotCommand>) GetCommandsConfiguration()
+        {
+            return (BotCommandScope.AllPrivateChats(), Commands);
         }
 
         private async Task HandleStartAsync(UpdateContext context, CancellationToken cancellationToken)
