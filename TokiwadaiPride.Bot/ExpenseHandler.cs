@@ -340,7 +340,7 @@ namespace TokiwadaiPride
                     context.When.LastMondayMidnight(),
                     context.When.NextSundayMidnight());
 
-                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n\n" + stats.ToString());
+                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n" + stats.ToString());
             }
             catch
             {
@@ -359,7 +359,7 @@ namespace TokiwadaiPride
                     context.When.BeginningOfMonth(),
                     context.When.EndOfMonth());
 
-                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n\n" + stats.ToString());
+                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n" + stats.ToString());
             }
             catch
             {
@@ -413,11 +413,12 @@ namespace TokiwadaiPride
 
         private static string ExpensesGrouppingToString(IGrouping<DateTime, Expense> x)
         {
-            // Day
+            // Day: cost sum
             // Time Name cost
             // Time Name cost
             // ...
-            return $"{x.Key.ToString("M")}\n{string.Join("\n", x.Select(y => $"{y.Date.ToString("HH:mm")} {y.Name} {y.Cost}"))}\n";
+            return $"{x.Key.ToString("M")}: {x.Sum(y => y.Cost).ToString("0.00")}\n"
+                + $"{string.Join("\n", x.Select(y => $"{y.Date.ToString("HH:mm")} {y.Name} {y.Cost.ToString("0.00")}"))}\n";
         }
     }
 }
