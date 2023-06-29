@@ -2,15 +2,15 @@
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
-using TokiwadaiPride.Bot;
 using TokiwadaiPride.Bot.Database;
-using TokiwadaiPride.Contract;
+using TokiwadaiPride.Contract.Types;
 using TokiwadaiPride.Types;
 
 namespace TokiwadaiPride.Bot;
 
-public class ExpenseHandler : IExpenseHandler
+public class ExpenseHandler : IUpdateHandler
 {
     public static readonly string StartCommand = "/start";
     public static readonly string AddExpenseCommand = "/add";
@@ -25,11 +25,11 @@ public class ExpenseHandler : IExpenseHandler
 
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<ExpenseHandler> _logger;
+    private readonly DatabaseClient _databaseClient;
 
     private Dictionary<string, Func<UpdateContext, CancellationToken, Task>> _commandHandlers =
         new Dictionary<string, Func<UpdateContext, CancellationToken, Task>>();
 
-    private DatabaseClient _databaseClient = new DatabaseClient();
 
     public static readonly BotCommand[] Commands = new[]
         {
@@ -46,7 +46,7 @@ public class ExpenseHandler : IExpenseHandler
 
         };
 
-    public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger)
+    public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger, DatabaseClient databaseClient)
     {
         _botClient = botClient;
         _logger = logger;
@@ -61,20 +61,22 @@ public class ExpenseHandler : IExpenseHandler
         _commandHandlers.Add(YesterdayCommand, HandleYesterayAsync);
         _commandHandlers.Add(WeekCommand, HandleWeekAsync);
         _commandHandlers.Add(MonthCommand, HandleMonthAsync);
+
+        _databaseClient = databaseClient;
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
     {
         UpdateContext handlerContext = update switch
         {
-            { Message: {} message } =>
+            { Message: { } message } =>
                 new UpdateContext()
                 {
                     ChatId = message.Chat.Id,
                     When = message.Date,
                     CommandArgs = message.Text
                 },
-            { EditedMessage: {} message } =>
+            { EditedMessage: { } message } =>
                 new UpdateContext()
                 {
                     ChatId = message.Chat.Id,
@@ -356,7 +358,7 @@ public class ExpenseHandler : IExpenseHandler
 
     private static Task<double> ParseExpressionAsync(string input)
     {
-        return Task.Run(()=>
+        return Task.Run(() =>
         {
             if (input == null)
             {

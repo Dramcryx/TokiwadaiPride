@@ -6,10 +6,11 @@ public class BackgroundService : Microsoft.Extensions.Hosting.BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BackgroundService> _logger;
+
     public BackgroundService(IServiceProvider serviceProvider, ILogger<BackgroundService> logger)
     {
-        _serviceProvider =
-            serviceProvider ?? throw new ArgumentException("Service provider for background service is null");
+        _serviceProvider = serviceProvider
+            ?? throw new ArgumentException("Service provider for background service is null");
         _logger = logger ?? throw new ArgumentException("Logger for background service is null");
         _logger.LogInformation("Created background service!");
     }

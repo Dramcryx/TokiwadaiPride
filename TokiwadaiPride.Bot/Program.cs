@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
-using TokiwadaiPride.Contract;
+using TokiwadaiPride.Bot.Database;
 
 namespace TokiwadaiPride.Bot;
 public class Program
@@ -25,19 +25,14 @@ public class Program
                             TelegramBotClientOptions options = new(botConfig.BotToken);
                             return new TelegramBotClient(options, httpClient);
                         });
-                
-                services.AddScoped<IExpenseHandler, ExpenseHandler>();
+
+                services.AddScoped<DatabaseClient>();
+                services.AddScoped<ExpenseHandler>();
                 services.AddScoped<ReceiverService>();
                 services.AddHostedService<BackgroundService>();
             })
             .Build();
+
         await host.RunAsync();
-    }
-
-    public class BotConfiguration
-    {
-        public static readonly string Configuration = "BotConfiguration";
-
-        public string BotToken { get; set; } = "";
     }
 }

@@ -1,151 +1,104 @@
-﻿using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using System.Net.Http.Json;
+using TokiwadaiPride.Contract.Requests;
+using TokiwadaiPride.Contract.Types;
 using TokiwadaiPride.Types;
 
-namespace TokiwadaiPride.Bot.Database
+namespace TokiwadaiPride.Bot.Database;
+
+public class DatabaseClient
 {
-    public class DatabaseClient
+    private readonly ILogger<DatabaseClient> _logger;
+    private readonly HttpClient _httpClient;
+
+    public DatabaseClient(ILogger<DatabaseClient> logger, IOptions<BotConfiguration> configuration, IHttpClientFactory httpClientFactory)
     {
-        private readonly ILogger<DatabaseClient> _logger;
+        _logger = logger;
 
-        public DatabaseClient()
+        var hostUrl = configuration.Value.DatabaseClientUrl ?? throw new ArgumentException(nameof(configuration));
+
+        var client = httpClientFactory.CreateClient("DatabaseClient.HttpClient");
+        client.BaseAddress = new Uri(hostUrl);
+
+        _httpClient = client;
+    }
+
+    public async Task AddExpenseAsync(long chatId, DateTime date, string name, double expense)
+    {
+        _logger.LogInformation($"Добавить расход пользователю {chatId}: {date}; {name}; {expense}");
+
+        var json = JsonContent.Create(new AddExpenseRequest()
         {
+            Date = date,
+            Name = name,
+            Expense = expense
+        });
 
-            _logger = LoggerFactory.Create(builder =>
-            {
-                builder.AddConsole();
-                builder.AddDebug();
-            }).CreateLogger<DatabaseClient>();
+        using var response = await _httpClient.PutAsync($"{chatId}/add", json);
+
+        if (!response.IsSuccessStatusCode) {
+            throw new ArgumentException($"Не удалось добавить запись {date};{name};{expense} для пользователя {chatId}");
         }
+    }
 
-        public async Task AddExpenseAsync(long chatId, DateTime date, string name, double expense)
+    public async Task<List<Expense>> GetExpensesAsync(long chatId, DateTime? date = null)
+    {
+        _logger.LogInformation($"Получить список расходов: {date ?? DateTime.MinValue}");
+
+        using var response = await _httpClient.GetAsync($"{chatId}/all?date={date?.ToString("yyyy-MM-ddTHH:mm:ss")}");
+
+        return await response.Content.ReadFromJsonAsync<List<Expense>>()
+            ?? throw new JsonSerializationException("Нарушен контракт!");
+    }
+
+    public async Task<List<Expense>> GetExpensesForRangeAsync(long chatId, DateTime start, DateTime end)
+    {
+        _logger.LogInformation($"Получить список расходов: {start} - {end}");
+
+        var uri = $"{chatId}/all?expenses-for-dates={start.ToString("yyyy-MM-ddTHH:mm:ss")}&end={end.ToString("yyyy-MM-ddTHH:mm:ss")}";
+        using var response = await _httpClient.GetAsync(uri);
+
+        return await response.Content.ReadFromJsonAsync<List<Expense>>()
+            ?? throw new JsonSerializationException("Нарушен контракт!");
+    }
+
+    public async Task<(ExpensesStatistics, List<Expense>)> GetExpensesStatisticsForAsync(long chatId, DateTime from, DateTime to)
+    {
+        _logger.LogInformation($"Получить для пользователя {chatId} статистику расходов с {from} по {to}");
+
+        var (dayStart, dayEnd) = (from.Date, GetDayRange(to).Item2);
+
+        var uri = $"{chatId}/all?expenses-for-dates={dayStart.ToString("yyyy-MM-ddTHH:mm:ss")}&end={dayEnd.ToString("yyyy-MM-ddTHH:mm:ss")}";
+        using var response = await _httpClient.GetAsync(uri);
+
+        var expenses = await response.Content.ReadFromJsonAsync<List<Expense>>()
+            ?? throw new JsonSerializationException("Нарушен контракт!");
+
+        return (await ExpensesStatistics.CalculateAsync(expenses, 20000.0), expenses);
+    }
+
+    public async Task<Expense?> DeleteLastExpenseAsync(long chatId)
+    {
+        _logger.LogInformation($"Удалить для пользователя {chatId} последнюю запись");
+
+        var resposne = await _httpClient.PostAsync($"{chatId}/pop", null);
+
+        switch (resposne.StatusCode)
         {
-            _logger.LogInformation($"Добавить расход пользователю {chatId}: {date}; {name}; {expense}");
-
-            if (!(await Database.GetForUser(chatId).InsertExpenseAsync(date, name, expense))) {
-                throw new ArgumentException($"Не удалось добавить запись {date};{name};{expense} для пользователя {chatId}");
-            }
+            case System.Net.HttpStatusCode.OK:
+                return await resposne.Content.ReadFromJsonAsync<Expense>()
+                    ?? throw new JsonSerializationException("Нарушен контракт");
+            case System.Net.HttpStatusCode.NotFound:
+                return null;
+            default:
+                throw new HttpRequestException("Что-то упало на сервисе базы");
         }
+    }
 
-        public async Task<IEnumerable<Expense>> GetExpensesAsync(long chatId, DateTime? date = null)
-        {
-            _logger.LogInformation($"Получить список расходов: {date ?? DateTime.MinValue}");
-
-            SqliteDataReader? reader = null;
-            List<Expense> expenses = new List<Expense>();
-            try
-            {
-                if (!date.HasValue)
-                {
-                    reader = await Database.GetForUser(chatId).SelectAllExpensesAsync();
-                }
-                else
-                {
-                    var (dayStart, dayEnd) = GetDayRange(date.Value);
-                    reader = await Database.GetForUser(chatId).SelectExpensesForDatesAsync(dayStart, dayEnd);
-                }
-
-                while (reader.Read())
-                {
-                    expenses.Add(new Expense
-                    {
-                        Date = reader.GetDateTime(0).ToLocalTime(),
-                        Name = reader.GetString(1),
-                        Cost = reader.GetDouble(2)
-                    });
-                }
-            }
-            finally
-            {
-                if (reader != null)
-                {
-                    reader.Dispose();
-                }
-            }
-
-            return expenses;
-        }
-
-        public async Task<IEnumerable<Expense>> GetExpensesForRangeAsync(long chatId, DateTime start, DateTime end)
-        {
-            _logger.LogInformation($"Получить список расходов: {start} - {end}");
-
-            SqliteDataReader? reader = null;
-            List<Expense> expenses = new List<Expense>();
-            try
-            {
-                reader = await Database.GetForUser(chatId).SelectExpensesForDatesAsync(start, end);
-
-                while (reader.Read())
-                {
-                    expenses.Add(new Expense
-                    {
-                        Date = reader.GetDateTime(0).ToLocalTime(),
-                        Name = reader.GetString(1),
-                        Cost = reader.GetDouble(2)
-                    });
-                }
-            }
-            finally
-            {
-                if (reader != null)
-                {
-                    reader.Dispose();
-                }
-            }
-
-            return expenses;
-        }
-
-        public async Task<(ExpensesStatistics, List<Expense>)> GetExpensesStatisticsForAsync(long chatId, DateTime from, DateTime to)
-        {
-            _logger.LogInformation($"Получить для пользователя {chatId} статистику расходов с {from} по {to}");
-
-            var (dayStart, dayEnd) = (from.Date, GetDayRange(to).Item2);
-
-            List<Expense> expenses = new List<Expense>();
-            using (var reader = await Database.GetForUser(chatId).SelectExpensesForDatesAsync(dayStart, dayEnd))
-            {
-                while (reader.Read())
-                {
-                    expenses.Add(new Expense
-                    {
-                        Date = reader.GetDateTime(0).ToLocalTime(),
-                        Name = reader.GetString(1),
-                        Cost = reader.GetDouble(2)
-                    });
-                }
-            }
-
-            return (await ExpensesStatistics.CalculateAsync(expenses, 20000.0), expenses);
-        }
-
-        public async Task<Expense?> DeleteLastExpenseAsync(long chatId)
-        {
-            _logger.LogInformation($"Удалить для пользователя {chatId} последнюю запись");
-
-            var reader = await Database.GetForUser(chatId).DeleteLastAsync();
-            if (reader != null)
-            {
-                using (reader)
-                {
-                    while (reader.Read())
-                    {
-                        return new Expense
-                        {
-                            Date = reader.GetDateTime(0).ToLocalTime(),
-                            Name = reader.GetString(1),
-                            Cost = reader.GetDouble(2)
-                        };
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static (DateTime, DateTime) GetDayRange(DateTime date)
-        {
-            return (date.Date, date.Date.AddDays(1).AddTicks(-1));
-        }
+    private static (DateTime, DateTime) GetDayRange(DateTime date)
+    {
+        return (date.Date, date.Date.AddDays(1).AddTicks(-1));
     }
 }

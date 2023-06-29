@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TokiwadaiPride.Bot": {
+      "commandName": "Project",
+      "workingDirectory": "$(ProjectDir)"
+    }
+  }
+}
