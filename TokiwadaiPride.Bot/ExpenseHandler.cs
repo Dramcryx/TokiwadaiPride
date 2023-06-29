@@ -81,7 +81,7 @@ namespace TokiwadaiPride
                         When = message.Date,
                         CommandArgs = message.Text
                     },
-                _ => throw new ArgumentException("Неизвестная команда")
+                _ => throw new ArgumentException("Как ты это вообще мне прислал?")
             };
 
             if (handlerContext.CommandArgs == null)
@@ -268,12 +268,7 @@ namespace TokiwadaiPride
                     throw new ArgumentException($"{to} позже, чем {from}");
                 }
 
-                var (stats, _) = await _databaseClient.GetExpensesStatisticsForAsync(
-                    context.ChatId,
-                    from,
-                    to.AddDays(1.0).AddTicks(-1));
-
-                await _botClient.SendTextMessageAsync(context.ChatId, stats.ToString());
+                await HandleTwoDatesStatisticsAsync(context.ChatId, from, to.AddDays(1.0).AddTicks(-1), true, cancellationToken);
             }
             catch
             {
@@ -294,82 +289,56 @@ namespace TokiwadaiPride
 
         private async Task HandleTodayAsync(UpdateContext context, CancellationToken cancellationToken)
         {
-            try
-            {
-                var today = context.When.Date;
-                var stats = await _databaseClient.GetExpensesStatisticsForAsync(
-                    context.ChatId,
-                    today,
-                    today.AddDays(1.0).AddTicks(-1));
-
-                await _botClient.SendTextMessageAsync(
-                    context.ChatId,
-                    stats.ToString(),
-                    cancellationToken: cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                await _botClient.SendTextMessageAsync(context.ChatId, $"\"Чё-то упало: {ex.Message}");
-            }
+            var today = context.When.Date;
+            await HandleTwoDatesStatisticsAsync(context.ChatId, today, today.AddDays(1.0).AddTicks(-1), false, cancellationToken);
         }
 
         private async Task HandleYesterayAsync(UpdateContext context, CancellationToken cancellationToken)
         {
-            try
-            {
-                var yesterday = context.When.Date.AddDays(-1);
-                var stats = await _databaseClient.GetExpensesStatisticsForAsync(
-                    context.ChatId,
-                    yesterday,
-                    yesterday.AddDays(1.0).AddTicks(-1));
-
-                await _botClient.SendTextMessageAsync(context.ChatId, stats.ToString());
-            }
-            catch (Exception ex)
-            {
-                await _botClient.SendTextMessageAsync(context.ChatId, $"\"Чё-то упало: {ex.Message}");
-            }
+            context.When = context.When.AddDays(-1);
+            await HandleTodayAsync(context, cancellationToken);
         }
 
         private async Task HandleWeekAsync(UpdateContext context, CancellationToken cancellationToken)
         {
-            try
-            {
-                var (stats, expenses) = await _databaseClient.GetExpensesStatisticsForAsync(
-                    context.ChatId,
-                    context.When.LastMondayMidnight(),
-                    context.When.NextSundayMidnight());
-
-                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n" + stats.ToString());
-            }
-            catch
-            {
-                await _botClient.SendTextMessageAsync(
-                    context.ChatId,
-                    $"\"Что-то пошло не так\" - сделав грустный взгляд сказала Мисака-Мисака");
-            }
+            await HandleTwoDatesStatisticsAsync(context.ChatId, context.When.LastMondayMidnight(), context.When.NextSundayMidnight(), true, cancellationToken);
         }
 
         private async Task HandleMonthAsync(UpdateContext context, CancellationToken cancellationToken)
         {
+            await HandleTwoDatesStatisticsAsync(context.ChatId, context.When.BeginningOfMonth(), context.When.EndOfMonth(), true, cancellationToken);
+        }
+
+        private async Task HandleTwoDatesStatisticsAsync(long chatId, DateTime from, DateTime to, bool withExpenseList, CancellationToken cancellationToken)
+        {
             try
             {
-                var (stats, expenses) = await _databaseClient.GetExpensesStatisticsForAsync(
-                    context.ChatId,
-                    context.When.BeginningOfMonth(),
-                    context.When.EndOfMonth());
+                var (stats, expenses) = await _databaseClient.GetExpensesStatisticsForAsync(chatId, from, to);
 
-                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n" + stats.ToString());
+                if (expenses == null || expenses.Count() == 0)
+                {
+                    await _botClient.SendTextMessageAsync(
+                        chatId,
+                        "\"За этот период ты не потратил ни гроша!\" - с удивлением воскликнула Мисака-Мисака");
+                    return;
+                }
+
+                string response = "";
+                if (withExpenseList)
+                {
+                    response += "\n" + FormatExpensesByDay(expenses);
+                }
+                response += stats.ToString();
+
+                await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken);
             }
-            catch
+            catch (Exception ex)
             {
-                await _botClient.SendTextMessageAsync(
-                    context.ChatId,
-                    $"\"Что-то пошло не так\" - сделав грустный взгляд сказала Мисака-Мисака");
+                await _botClient.SendTextMessageAsync(chatId, $"\"Чё-то упало: {ex.Message}");
             }
         }
 
-        private async Task<(string, double)> ParseExpenseAsync(string input)
+        private static async Task<(string, double)> ParseExpenseAsync(string input)
         {
             if (input == null)
             {

@@ -74,8 +74,8 @@ public class ExpensesStatistics
     {
         string dateFormat = "dd MMMM HH:mm";
         return
-            $"Всего с {From.ToString(dateFormat)} по {To.ToString(dateFormat)} потрачено {Total}.\n" +
-            $"Исключая выше {_bigFilter}: {TotalWithoutBig}.\n\n" +
+            $"Всего с {From.ToString(dateFormat)} по {To.ToString(dateFormat)} потрачено {Total.ToString("0.00")}.\n" +
+            $"Исключая выше {_bigFilter}: {TotalWithoutBig.ToString("0.00")}.\n\n" +
             $"Топ 10 трат:\n{string.Join("\n", Top10.Select(x => x.ToString()))}";
     }
 }
