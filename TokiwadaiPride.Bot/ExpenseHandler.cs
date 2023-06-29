@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
+using TokiwadaiPride.Bot;
 using TokiwadaiPride.Bot.Database;
 using TokiwadaiPride.Contract;
 using TokiwadaiPride.Types;
@@ -19,6 +20,8 @@ namespace TokiwadaiPride
         public static readonly string DeleteLastCommand = "/pop";
         public static readonly string TodayCommand = "/today";
         public static readonly string YesterdayCommand = "/yesterday";
+        public static readonly string WeekCommand = "/week";
+        public static readonly string MonthCommand = "/month";
 
         private readonly ITelegramBotClient _botClient;
         private readonly ILogger<ExpenseHandler> _logger;
@@ -37,7 +40,10 @@ namespace TokiwadaiPride
                 new BotCommand { Command = GetStatisticsForCommand, Description = "Показать расходы за две даты в формате ДД.ММ.ГГГГ" },
                 new BotCommand { Command = DeleteLastCommand, Description = "Удалить последнюю запись" },
                 new BotCommand { Command = TodayCommand, Description = "Показать расходы за сегодня" },
-                new BotCommand { Command = YesterdayCommand, Description = "Показать расходы за вчера" }
+                new BotCommand { Command = YesterdayCommand, Description = "Показать расходы за вчера" },
+                new BotCommand { Command = WeekCommand, Description = "Показать расходы c понедельника" },
+                new BotCommand { Command = MonthCommand, Description = "Показать расходы с первого числа месяца" }
+
             };
 
         public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger)
@@ -53,6 +59,8 @@ namespace TokiwadaiPride
             _commandHandlers.Add(DeleteLastCommand, HandleDeleteLastAsync);
             _commandHandlers.Add(TodayCommand, HandleTodayAsync);
             _commandHandlers.Add(YesterdayCommand, HandleYesterayAsync);
+            _commandHandlers.Add(WeekCommand, HandleWeekAsync);
+            _commandHandlers.Add(MonthCommand, HandleMonthAsync);
         }
 
         public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
@@ -134,7 +142,9 @@ namespace TokiwadaiPride
                 $"{GetStatisticsForCommand} - Показать расходы за две даты в формате ДД.ММ.ГГГГ\nНапример: {GetStatisticsForCommand} 05.05.2023 07.07.2023\n\n" +
                 $"{DeleteLastCommand} - Удалить последнюю запись\n\n" +
                 $"{TodayCommand} - Показать расходы за сегодня\n\n" +
-                $"{YesterdayCommand} - Показать расходы за вчера\n\n";
+                $"{YesterdayCommand} - Показать расходы за вчера\n\n" +
+                $"{WeekCommand} - Показать расходы с понедельника\n\n" +
+                $"{MonthCommand} - Показать расходы с первого числа месяца\n\n";
 
             await _botClient.SendTextMessageAsync(context.ChatId, message, cancellationToken: cancellationToken);
         }
@@ -222,13 +232,9 @@ namespace TokiwadaiPride
                     return;
                 }
 
-                var grouppedAndSelected = string.Join(
-                    "\n",
-                    expenses.GroupBy(x => x.Date.Date).Select(x => ExpensesGrouppingToString(x)));
-
                 await _botClient.SendTextMessageAsync(
                     context.ChatId,
-                    $"Как много ты потратил!\n\n{grouppedAndSelected}\n - раздосадованно сказала Мисака-Мисака");
+                    $"Как много ты потратил!\n\n{FormatExpensesByDay(expenses)}\n - раздосадованно сказала Мисака-Мисака");
             }
             catch
             {
@@ -262,7 +268,7 @@ namespace TokiwadaiPride
                     throw new ArgumentException($"{to} позже, чем {from}");
                 }
 
-                var stats = await _databaseClient.GetExpensesStatisticsForAsync(
+                var (stats, _) = await _databaseClient.GetExpensesStatisticsForAsync(
                     context.ChatId,
                     from,
                     to.AddDays(1.0).AddTicks(-1));
@@ -290,7 +296,7 @@ namespace TokiwadaiPride
         {
             try
             {
-                var today = DateTime.Now.Date;
+                var today = context.When.Date;
                 var stats = await _databaseClient.GetExpensesStatisticsForAsync(
                     context.ChatId,
                     today,
@@ -311,7 +317,7 @@ namespace TokiwadaiPride
         {
             try
             {
-                var yesterday = DateTime.Now.Date.AddDays(-1);
+                var yesterday = context.When.Date.AddDays(-1);
                 var stats = await _databaseClient.GetExpensesStatisticsForAsync(
                     context.ChatId,
                     yesterday,
@@ -322,6 +328,44 @@ namespace TokiwadaiPride
             catch (Exception ex)
             {
                 await _botClient.SendTextMessageAsync(context.ChatId, $"\"Чё-то упало: {ex.Message}");
+            }
+        }
+
+        private async Task HandleWeekAsync(UpdateContext context, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var (stats, expenses) = await _databaseClient.GetExpensesStatisticsForAsync(
+                    context.ChatId,
+                    context.When.LastMondayMidnight(),
+                    context.When.NextSundayMidnight());
+
+                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n\n" + stats.ToString());
+            }
+            catch
+            {
+                await _botClient.SendTextMessageAsync(
+                    context.ChatId,
+                    $"\"Что-то пошло не так\" - сделав грустный взгляд сказала Мисака-Мисака");
+            }
+        }
+
+        private async Task HandleMonthAsync(UpdateContext context, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var (stats, expenses) = await _databaseClient.GetExpensesStatisticsForAsync(
+                    context.ChatId,
+                    context.When.BeginningOfMonth(),
+                    context.When.EndOfMonth());
+
+                await _botClient.SendTextMessageAsync(context.ChatId, FormatExpensesByDay(expenses) + "\n\n" + stats.ToString());
+            }
+            catch
+            {
+                await _botClient.SendTextMessageAsync(
+                    context.ChatId,
+                    $"\"Что-то пошло не так\" - сделав грустный взгляд сказала Мисака-Мисака");
             }
         }
 
@@ -358,6 +402,13 @@ namespace TokiwadaiPride
 
                 return double.Parse((string)row["input"]);
             });
+        }
+
+        private static string FormatExpensesByDay(IEnumerable<Expense> expenses)
+        {
+            return string.Join(
+                    "\n",
+                    expenses.GroupBy(x => x.Date.Date).Select(x => ExpensesGrouppingToString(x)));
         }
 
         private static string ExpensesGrouppingToString(IGrouping<DateTime, Expense> x)

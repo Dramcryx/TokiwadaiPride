@@ -69,7 +69,38 @@ namespace TokiwadaiPride.Bot.Database
             return expenses;
         }
 
-        public async Task<ExpensesStatistics> GetExpensesStatisticsForAsync(long chatId, DateTime from, DateTime to)
+        public async Task<IEnumerable<Expense>> GetExpensesForRangeAsync(long chatId, DateTime start, DateTime end)
+        {
+            _logger.LogInformation($"Получить список расходов: {start} - {end}");
+
+            SqliteDataReader? reader = null;
+            List<Expense> expenses = new List<Expense>();
+            try
+            {
+                reader = await Database.GetForUser(chatId).SelectExpensesForDatesAsync(start, end);
+
+                while (reader.Read())
+                {
+                    expenses.Add(new Expense
+                    {
+                        Date = reader.GetDateTime(0).ToLocalTime(),
+                        Name = reader.GetString(1),
+                        Cost = reader.GetDouble(2)
+                    });
+                }
+            }
+            finally
+            {
+                if (reader != null)
+                {
+                    reader.Dispose();
+                }
+            }
+
+            return expenses;
+        }
+
+        public async Task<(ExpensesStatistics, List<Expense>)> GetExpensesStatisticsForAsync(long chatId, DateTime from, DateTime to)
         {
             _logger.LogInformation($"Получить для пользователя {chatId} статистику расходов с {from} по {to}");
 
@@ -89,7 +120,7 @@ namespace TokiwadaiPride.Bot.Database
                 }
             }
 
-            return await ExpensesStatistics.CalculateAsync(expenses, 20000.0);
+            return (await ExpensesStatistics.CalculateAsync(expenses, 20000.0), expenses);
         }
 
         public async Task<Expense?> DeleteLastExpenseAsync(long chatId)
