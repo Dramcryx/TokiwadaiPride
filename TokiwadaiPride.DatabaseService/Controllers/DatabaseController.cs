@@ -10,10 +10,12 @@ namespace TokiwadaiPride.DatabaseService.Controllers;
 public class DatabaseController : ControllerBase
 {
     private readonly DatabaseAdapterService _databaseService;
+    private readonly ILogger<DatabaseController> _logger;
 
-    public DatabaseController(DatabaseAdapterService database)
+    public DatabaseController(DatabaseAdapterService database, ILogger<DatabaseController> logger)
     {
         _databaseService = database ?? throw new ArgumentNullException(nameof(database));
+        _logger = logger;
     }
 
     [HttpPut("{chatId}/add")]
@@ -21,6 +23,7 @@ public class DatabaseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddExpenseAsync([FromRoute] long chatId, AddExpenseRequest request)
     {
+        _logger.LogInformation($"AddExpenseAsync: {chatId}, {request}");
         return await _databaseService.InsertExpenseAsync(chatId, request.Date, request.Name, request.Expense)
             ? Ok() : BadRequest();
     }
