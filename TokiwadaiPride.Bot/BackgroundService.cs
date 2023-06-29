@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace TokiwadaiPride;
+namespace TokiwadaiPride.Bot;
 public class BackgroundService : Microsoft.Extensions.Hosting.BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;

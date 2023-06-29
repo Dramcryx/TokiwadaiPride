@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
-using TokiwadaiPride;
 using TokiwadaiPride.Contract;
 
+namespace TokiwadaiPride.Bot;
 public class Program
 {
     public static async Task Main(string[] args)
@@ -28,7 +28,7 @@ public class Program
                 
                 services.AddScoped<IExpenseHandler, ExpenseHandler>();
                 services.AddScoped<ReceiverService>();
-                services.AddHostedService<TokiwadaiPride.BackgroundService>();
+                services.AddHostedService<BackgroundService>();
             })
             .Build();
         await host.RunAsync();

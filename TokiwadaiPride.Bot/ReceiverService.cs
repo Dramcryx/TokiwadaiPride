@@ -5,7 +5,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using TokiwadaiPride.Contract;
 
-namespace TokiwadaiPride;
+namespace TokiwadaiPride.Bot;
 
 public class ReceiverService
 {
