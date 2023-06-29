@@ -10,6 +10,6 @@ public class Expense
 
     public override string ToString()
     {
-        return $"{Date.ToString("D")} {Name}, {Cost}";
+        return $"{Date.ToString("D")} {Name}, {Cost.ToString("0.00")}";
     }
 }
