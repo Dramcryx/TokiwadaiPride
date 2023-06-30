@@ -57,7 +57,7 @@ public class DatabaseClient
     {
         _logger.LogInformation($"Получить список расходов: {start} - {end}");
 
-        var uri = $"{chatId}/all?expenses-for-dates={start.ToString("yyyy-MM-ddTHH:mm:ss")}&end={end.ToString("yyyy-MM-ddTHH:mm:ss")}";
+        var uri = $"{chatId}/expenses-for-dates?start={start.ToString("yyyy-MM-ddTHH:mm:ss")}&end={end.ToString("yyyy-MM-ddTHH:mm:ss")}";
         using var response = await _httpClient.GetAsync(uri);
 
         return await response.Content.ReadFromJsonAsync<List<Expense>>()
@@ -70,7 +70,7 @@ public class DatabaseClient
 
         var (dayStart, dayEnd) = (from.Date, GetDayRange(to).Item2);
 
-        var uri = $"{chatId}/all?expenses-for-dates={dayStart.ToString("yyyy-MM-ddTHH:mm:ss")}&end={dayEnd.ToString("yyyy-MM-ddTHH:mm:ss")}";
+        var uri = $"{chatId}/expenses-for-dates?start={dayStart.ToString("yyyy-MM-ddTHH:mm:ss")}&end={dayEnd.ToString("yyyy-MM-ddTHH:mm:ss")}";
         using var response = await _httpClient.GetAsync(uri);
 
         var expenses = await response.Content.ReadFromJsonAsync<List<Expense>>()
