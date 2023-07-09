@@ -328,7 +328,7 @@ public class ExpenseHandler : IUpdateHandler
             string response = "";
             if (withExpenseList)
             {
-                response += "\n" + FormatExpensesByDay(expenses);
+                response += "\n\n" + FormatExpensesByDay(expenses);
             }
             response += stats.ToString();
 

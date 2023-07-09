@@ -5,7 +5,8 @@ internal static class DateTimeExtensions
     public static DateTime LastMondayMidnight(this DateTime dateTime)
     {
         var dayStart = dateTime.Date;
-        return dayStart.AddDays(-(int)dayStart.DayOfWeek + (int)DayOfWeek.Monday);
+        int offset = dayStart.DayOfWeek == DayOfWeek.Sunday ? -7 : -(int)dayStart.DayOfWeek;
+        return dayStart.AddDays(offset + (int)DayOfWeek.Monday);
     }
 
     public static DateTime NextSundayMidnight(this DateTime dateTime)
