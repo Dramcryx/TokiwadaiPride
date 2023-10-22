@@ -189,7 +189,7 @@ public class ExpenseHandler : IUpdateHandler
                 throw new ArgumentException($"Некорректная строка {context.CommandArgs}");
             }
 
-            var date = DateTime.Parse(dateAndExpense[0]);
+            var date = DateTime.ParseExact(dateAndExpense[0], "dd.MM.yyyy", null);
 
             var (name, value) = await ParseExpenseAsync(dateAndExpense[1]);
             if (cancellationToken.IsCancellationRequested)
