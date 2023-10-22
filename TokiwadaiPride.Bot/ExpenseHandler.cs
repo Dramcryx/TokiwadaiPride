@@ -388,7 +388,7 @@ public class ExpenseHandler : IUpdateHandler
         // Time Name cost
         // Time Name cost
         // ...
-        return $"{x.Key.ToString("M")}: {x.Sum(y => y.Cost).ToString("0.00")}\n"
-            + $"{string.Join("\n", x.Select(y => $"{y.Date.ToString("HH:mm")} {y.Name} {y.Cost.ToString("0.00")}"))}\n";
+        return $"{x.Key:M}: {x.Sum(y => y.Cost):0.00}\n"
+            + $"{string.Join("\n", x.Select(y => $"{y.Date:HH:mm} {y.Name} {y.Cost:0.00}"))}\n";
     }
 }
