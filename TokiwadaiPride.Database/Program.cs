@@ -1,4 +1,4 @@
-using TokiwadaiPride.DatabaseService.Services;
+using TokiwadaiPride.Database.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

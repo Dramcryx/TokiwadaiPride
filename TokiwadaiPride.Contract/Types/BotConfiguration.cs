@@ -1,4 +1,4 @@
-﻿namespace TokiwadaiPride.Bot;
+﻿namespace TokiwadaiPride.Contract.Types;
 
 public class BotConfiguration
 {

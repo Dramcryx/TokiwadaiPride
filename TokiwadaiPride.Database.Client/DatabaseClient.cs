@@ -4,9 +4,8 @@ using Newtonsoft.Json;
 using System.Net.Http.Json;
 using TokiwadaiPride.Contract.Requests;
 using TokiwadaiPride.Contract.Types;
-using TokiwadaiPride.Types;
 
-namespace TokiwadaiPride.Bot.Database;
+namespace TokiwadaiPride.Database.Client;
 
 public class DatabaseClient
 {

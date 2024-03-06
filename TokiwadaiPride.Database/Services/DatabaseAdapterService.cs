@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 
-namespace TokiwadaiPride.DatabaseService.Services;
+namespace TokiwadaiPride.Database.Services;
 
 public class DatabaseAdapterService
 {

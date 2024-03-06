@@ -2,7 +2,8 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
-using TokiwadaiPride.Bot.Database;
+using TokiwadaiPride.Database.Client;
+using TokiwadaiPride.Contract.Types;
 
 namespace TokiwadaiPride.Bot;
 public class Program

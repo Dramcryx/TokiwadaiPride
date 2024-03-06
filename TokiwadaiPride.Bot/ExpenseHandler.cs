@@ -4,8 +4,8 @@ using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
-using TokiwadaiPride.Bot.Database;
 using TokiwadaiPride.Contract.Types;
+using TokiwadaiPride.Database.Client;
 using TokiwadaiPride.Types;
 
 namespace TokiwadaiPride.Bot;
@@ -155,7 +155,8 @@ public class ExpenseHandler : IUpdateHandler
     {
         try
         {
-            var (name, value) = await ParseExpenseAsync(context.CommandArgs ?? throw new ArgumentException("Пустое сообщение с текстом"));
+            var (name, value) = await ParseExpenseAsync(context.CommandArgs ??
+                throw new ArgumentException("Пустое сообщение с текстом"));
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
@@ -169,6 +170,7 @@ public class ExpenseHandler : IUpdateHandler
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex.Message);
             await _botClient.SendTextMessageAsync(context.ChatId, ex.Message);
         }
     }

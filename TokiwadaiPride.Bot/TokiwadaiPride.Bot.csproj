@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TokiwadaiPride.Contract\TokiwadaiPride.Contract.csproj" />
+    <ProjectReference Include="..\TokiwadaiPride.Database.Client\TokiwadaiPride.Database.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

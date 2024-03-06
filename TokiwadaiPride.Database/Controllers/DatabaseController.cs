@@ -2,9 +2,9 @@
 using Microsoft.Data.Sqlite;
 using TokiwadaiPride.Contract.Requests;
 using TokiwadaiPride.Contract.Types;
-using TokiwadaiPride.DatabaseService.Services;
+using TokiwadaiPride.Database.Services;
 
-namespace TokiwadaiPride.DatabaseService.Controllers;
+namespace TokiwadaiPride.Database.Controllers;
 
 [ApiController]
 public class DatabaseController : ControllerBase

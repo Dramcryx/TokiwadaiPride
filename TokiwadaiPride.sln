@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokiwadaiPride.Bot", "Tokiw
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokiwadaiPride.Contract", "TokiwadaiPride.Contract\TokiwadaiPride.Contract.csproj", "{5D8A4CF5-B904-47C3-91D5-6C1B059FC13A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TokiwadaiPride.DatabaseService", "TokiwadaiPride.DatabaseService\TokiwadaiPride.DatabaseService.csproj", "{9F4D6D14-8ACC-42CE-82E7-3AF0EB49D9B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TokiwadaiPride.Database", "TokiwadaiPride.Database\TokiwadaiPride.Database.csproj", "{9F4D6D14-8ACC-42CE-82E7-3AF0EB49D9B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

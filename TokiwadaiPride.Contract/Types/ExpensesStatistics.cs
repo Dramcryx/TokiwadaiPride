@@ -1,6 +1,4 @@
-﻿using TokiwadaiPride.Contract.Types;
-
-namespace TokiwadaiPride.Types;
+﻿namespace TokiwadaiPride.Contract.Types;
 public class ExpensesStatistics
 {
     public double Total { get; private set; }
