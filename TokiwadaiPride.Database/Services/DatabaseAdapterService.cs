@@ -36,6 +36,17 @@ public class DatabaseAdapterService
         return await GetForUser(chatId).SelectExpensesForDatesAsync(from, to);
     }
 
+    public async Task<SqliteDataReader?> SearchExpensesAsync(long chatId, string text, DateTime? from, DateTime? to)
+    {
+        if ((from == null) != (to == null))
+            throw new ArgumentException("Both dates must be null or not null at the same time");
+
+        _logger.LogInformation(from == null
+            ? $"Querying entries for {chatId} with text {text}"
+            : $"Querying entries for {chatId} between {from} and {to} with text {text}");
+        return await GetForUser(chatId).SearchExpensesAsync(text, from, to);
+    }
+
     private Database GetForUser(long chatId)
     {
         _logger.LogInformation($"Get database for {chatId}");

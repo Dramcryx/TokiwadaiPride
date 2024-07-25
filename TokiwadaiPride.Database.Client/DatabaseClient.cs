@@ -96,6 +96,24 @@ public class DatabaseClient
         }
     }
 
+    public async Task<List<Expense>> SearchExpensesAsync(long chatId, string text, DateTime? start, DateTime? end)
+    {
+        if ((start == null) != (end == null))
+            throw new ArgumentException("Должны быть заполнены обе даты или никакие");
+
+        _logger.LogInformation(start == null
+                ? $"Получить список расходов с текстом {text}"
+                : $"Получить список расходов: {start} - {end} с текстом {text}");
+
+        var uri = start == null
+            ? $"{chatId}/search?&text={text}"
+            : $"{chatId}/search?start={start:yyyy-MM-ddTHH:mm:ss}&end={end:yyyy-MM-ddTHH:mm:ss}&text={text}";
+        using var response = await _httpClient.GetAsync(uri);
+
+        return await response.Content.ReadFromJsonAsync<List<Expense>>()
+            ?? throw new JsonSerializationException("Нарушен контракт!");
+    }
+
     private static (DateTime, DateTime) GetDayRange(DateTime date)
     {
         return (date.Date, date.Date.AddDays(1).AddTicks(-1));

@@ -138,6 +138,34 @@ internal class Database
         }
     }
 
+    public async Task<SqliteDataReader?> SearchExpensesAsync(string text, DateTime? from, DateTime? to)
+    {
+        if ((from == null) != (to == null))
+            throw new ArgumentException("Должны быть заполнены обе даты или никакие");
+
+        _logger.LogInformation(from == null
+            ? $"Запрос записей для {_chatId} с текстом {text}"
+            : $"Запрос записей для {_chatId} c {from} по {to} с текстом {text}");
+
+        var getExpensesCommand = _connection.CreateCommand();
+        getExpensesCommand.CommandText = from != null && to != null
+            ? $@"
+                    SELECT {DateColumn}, {NameColumn}, {CostColumn}
+                    FROM {MainTable}
+                    WHERE {DateColumn} BETWEEN '{ToSQLiteDate(from.Value)}' AND '{ToSQLiteDate(to.Value)}'
+                    AND {NameColumn} LIKE '{text}'
+                    LIMIT {Limit};
+              "
+            : $@"
+                    SELECT {DateColumn}, {NameColumn}, {CostColumn}
+                    FROM {MainTable}
+                    WHERE {NameColumn} LIKE '{text}'
+                    LIMIT {Limit};
+              ";
+
+        return await getExpensesCommand.ExecuteReaderAsync();
+    }
+
     private static string ToSQLiteDate(DateTime date)
         => date.ToUniversalTime().ToString("u").Replace("Z", "");
 }

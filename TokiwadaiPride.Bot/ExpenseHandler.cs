@@ -22,6 +22,7 @@ public class ExpenseHandler : IUpdateHandler
     public static readonly string YesterdayCommand = "/yesterday";
     public static readonly string WeekCommand = "/week";
     public static readonly string MonthCommand = "/month";
+    public static readonly string SearchCommand = "/search";
 
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<ExpenseHandler> _logger;
@@ -31,8 +32,8 @@ public class ExpenseHandler : IUpdateHandler
         new Dictionary<string, Func<UpdateContext, CancellationToken, Task>>();
 
 
-    public static readonly BotCommand[] Commands = new[]
-        {
+    public static readonly BotCommand[] Commands =
+        [
             new BotCommand { Command = StartCommand, Description = "Показать описание бота" },
             new BotCommand { Command = AddExpenseCommand, Description = "Добавить расход в текущий день в формате 'название с пробелами 12345*0.67'" },
             new BotCommand { Command = AddExpenseForDateCommand, Description = "Добавить расход в конкретный день в формате 'ДД.ММ.ГГГГ название с пробелами 12345*0.67'" },
@@ -42,9 +43,10 @@ public class ExpenseHandler : IUpdateHandler
             new BotCommand { Command = TodayCommand, Description = "Показать расходы за сегодня" },
             new BotCommand { Command = YesterdayCommand, Description = "Показать расходы за вчера" },
             new BotCommand { Command = WeekCommand, Description = "Показать расходы c понедельника" },
-            new BotCommand { Command = MonthCommand, Description = "Показать расходы с первого числа месяца" }
+            new BotCommand { Command = MonthCommand, Description = "Показать расходы с первого числа месяца" },
+            new BotCommand { Command = SearchCommand, Description = "Найти расходы по тексту между двумя датами в формате 'текст ДД.ММ.ГГГГ ДД.ММ.ГГГГ'" }
 
-        };
+        ];
 
     public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger, DatabaseClient databaseClient)
     {
@@ -61,6 +63,7 @@ public class ExpenseHandler : IUpdateHandler
         _commandHandlers.Add(YesterdayCommand, HandleYesterayAsync);
         _commandHandlers.Add(WeekCommand, HandleWeekAsync);
         _commandHandlers.Add(MonthCommand, HandleMonthAsync);
+        _commandHandlers.Add(SearchCommand, HandleSearchAsync);
 
         _databaseClient = databaseClient;
     }
@@ -157,10 +160,9 @@ public class ExpenseHandler : IUpdateHandler
         {
             var (name, value) = await ParseExpenseAsync(context.CommandArgs ??
                 throw new ArgumentException("Пустое сообщение с текстом"));
+
             if (cancellationToken.IsCancellationRequested)
-            {
                 return;
-            }
 
             await _databaseClient.AddExpenseAsync(context.ChatId, context.When, name, value);
 
@@ -180,24 +182,18 @@ public class ExpenseHandler : IUpdateHandler
         try
         {
             if (string.IsNullOrEmpty(context.CommandArgs))
-            {
                 throw new ArgumentNullException($"И куда ты хотел это добавить?");
-            }
 
             var dateAndExpense = context.CommandArgs.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
 
             if (dateAndExpense.Length != 2)
-            {
                 throw new ArgumentException($"Некорректная строка {context.CommandArgs}");
-            }
 
             var date = DateTime.ParseExact(dateAndExpense[0], "dd.MM.yyyy", null);
 
             var (name, value) = await ParseExpenseAsync(dateAndExpense[1]);
             if (cancellationToken.IsCancellationRequested)
-            {
                 return;
-            }
 
             await _databaseClient.AddExpenseAsync(context.ChatId, date, name, value);
 
@@ -224,9 +220,7 @@ public class ExpenseHandler : IUpdateHandler
             var expenses = await _databaseClient.GetExpensesAsync(context.ChatId, dateTime);
 
             if (cancellationToken.IsCancellationRequested)
-            {
                 return;
-            }
 
             if (expenses == null || expenses.Count() == 0)
             {
@@ -253,24 +247,18 @@ public class ExpenseHandler : IUpdateHandler
         try
         {
             if (context.CommandArgs == null)
-            {
                 throw new ArgumentNullException(nameof(context.CommandArgs));
-            }
 
             var dates = context.CommandArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             if (dates.Length != 2)
-            {
                 throw new ArgumentException(nameof(context.CommandArgs));
-            }
 
             DateTime from = DateTime.Parse(dates[0]);
             DateTime to = DateTime.Parse(dates[1]);
 
             if (from > to)
-            {
                 throw new ArgumentException($"{to} позже, чем {from}");
-            }
 
             await HandleTwoDatesStatisticsAsync(context.ChatId, from, to.AddDays(1.0).AddTicks(-1), true, cancellationToken);
         }
@@ -313,6 +301,63 @@ public class ExpenseHandler : IUpdateHandler
         await HandleTwoDatesStatisticsAsync(context.ChatId, context.When.BeginningOfMonth(), context.When.EndOfMonth(), true, cancellationToken);
     }
 
+    private async Task HandleSearchAsync(UpdateContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (context.CommandArgs == null)
+                throw new ArgumentNullException(nameof(context.CommandArgs));
+
+            var args = context.CommandArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (args.Length != 1 && args.Length != 3)
+                throw new ArgumentException(nameof(context.CommandArgs));
+
+            string text = args[0];
+
+            DateTime? from = null;
+            DateTime? to = null;
+            if (args.Length > 1)
+            {
+                if (!DateTime.TryParse(args[1], out var result))
+                    await _botClient.SendTextMessageAsync(context.ChatId, $"\"Я не поняла дату {args[1]}");
+
+                from = result;
+
+                if (!DateTime.TryParse(args[2], out result))
+                    await _botClient.SendTextMessageAsync(context.ChatId, $"\"Я не поняла дату {args[2]}");
+
+                to = result;
+
+                if (from > to)
+                    throw new ArgumentException($"{to} позже, чем {from}");
+            }
+
+            var chatId = context.ChatId;
+            var expenses = await _databaseClient.SearchExpensesAsync(chatId, text, from, to?.AddDays(1.0).AddTicks(-1));
+            if (expenses == null || expenses.Count() == 0)
+            {
+                await _botClient.SendTextMessageAsync(
+                    chatId,
+                    "\"За этот период ты не потратил ни гроша!\" - с удивлением воскликнула Мисака-Мисака");
+                return;
+            }
+
+            string response = "";
+            response += FormatExpensesByDay(expenses) + "\n\n";
+            response += $"Сумма по поиску: {expenses.Sum(x => x.Cost)}\n";
+
+            await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            await _botClient.SendTextMessageAsync(
+                context.ChatId,
+                $"\"Напиши нормальные даты: {context.CommandArgs}\" - сказала Мисака-Мисака, гордо отвергнув неправильные данные");
+        }
+    }
+
     private async Task HandleTwoDatesStatisticsAsync(long chatId, DateTime from, DateTime to, bool withExpenseList, CancellationToken cancellationToken)
     {
         try
@@ -329,9 +374,8 @@ public class ExpenseHandler : IUpdateHandler
 
             string response = "";
             if (withExpenseList)
-            {
                 response += FormatExpensesByDay(expenses) + "\n\n";
-            }
+
             response += stats.ToString();
 
             await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken);
@@ -345,15 +389,11 @@ public class ExpenseHandler : IUpdateHandler
     private static async Task<(string, double)> ParseExpenseAsync(string input)
     {
         if (input == null)
-        {
             throw new ArgumentNullException("Строка пустая");
-        }
 
         int splitter = input.LastIndexOf(' ');
         if (splitter == -1)
-        {
             throw new ArgumentException($"Не смог распарсить '{input}'");
-        }
 
         return (input.Substring(0, splitter), await ParseExpressionAsync(input.Substring(splitter + 1)));
     }
@@ -363,9 +403,7 @@ public class ExpenseHandler : IUpdateHandler
         return Task.Run(() =>
         {
             if (input == null)
-            {
                 throw new ArgumentNullException(nameof(input));
-            }
 
             var dataTable = new DataTable();
             dataTable.Columns.Add("input", string.Empty.GetType(), input);

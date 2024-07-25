@@ -122,4 +122,42 @@ public class DatabaseController : ControllerBase
         }
         return NotFound();
     }
+
+    [HttpGet("{chatId}/search")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Expense>))]
+    public async Task<IActionResult> SearchExpensesAsync(
+        [FromRoute] long chatId,
+        [FromQuery] string text,
+        [FromQuery] DateTime? start,
+        [FromQuery] DateTime? end)
+    {
+        SqliteDataReader? reader = null;
+        List<Expense> expenses = new List<Expense>();
+        try
+        {
+            reader = await _databaseService.SearchExpensesAsync(chatId, text, start, end);
+
+            if (reader == null)
+                return Ok(expenses);
+
+            while (reader.Read())
+            {
+                expenses.Add(new Expense
+                {
+                    Date = reader.GetDateTime(0).ToLocalTime(),
+                    Name = reader.GetString(1),
+                    Cost = reader.GetDouble(2)
+                });
+            }
+        }
+        finally
+        {
+            if (reader != null)
+            {
+                reader.Dispose();
+            }
+        }
+
+        return Ok(expenses);
+    }
 }
