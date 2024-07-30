@@ -153,13 +153,13 @@ internal class Database
                     SELECT {DateColumn}, {NameColumn}, {CostColumn}
                     FROM {MainTable}
                     WHERE {DateColumn} BETWEEN '{ToSQLiteDate(from.Value)}' AND '{ToSQLiteDate(to.Value)}'
-                    AND {NameColumn} LIKE '{text}'
+                    AND {NameColumn} LIKE '%{text}%'
                     LIMIT {Limit};
               "
             : $@"
                     SELECT {DateColumn}, {NameColumn}, {CostColumn}
                     FROM {MainTable}
-                    WHERE {NameColumn} LIKE '{text}'
+                    WHERE {NameColumn} LIKE '%{text}%'
                     LIMIT {Limit};
               ";
 
