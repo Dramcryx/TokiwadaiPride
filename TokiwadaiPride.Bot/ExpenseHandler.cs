@@ -419,7 +419,9 @@ public class ExpenseHandler : IUpdateHandler
     {
         return string.Join(
                 "\n",
-                expenses.GroupBy(x => x.Date.Date).Select(x => ExpensesGrouppingToString(x)));
+                expenses.GroupBy(x => x.Date.Date)
+                        .OrderBy(x => x.Key)
+                        .Select(ExpensesGrouppingToString));
     }
 
     private static string ExpensesGrouppingToString(IGrouping<DateTime, Expense> x)
@@ -429,6 +431,6 @@ public class ExpenseHandler : IUpdateHandler
         // Time Name cost
         // ...
         return $"{x.Key:M}: {x.Sum(y => y.Cost):0.00}\n"
-            + $"{string.Join("\n", x.Select(y => $"{y.Date:HH:mm} {y.Name} {y.Cost:0.00}"))}\n";
+            + $"{string.Join("\n", x.Select(y => $"{y.Name} {y.Cost:0.00}"))}\n";
     }
 }
