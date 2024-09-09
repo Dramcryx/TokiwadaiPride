@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Reflection.Metadata;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -6,6 +7,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using TokiwadaiPride.Contract.Types;
 using TokiwadaiPride.Database.Client;
+using TokiwadaiPride.Redis;
 using TokiwadaiPride.Types;
 
 namespace TokiwadaiPride.Bot;
@@ -23,10 +25,13 @@ public class ExpenseHandler : IUpdateHandler
     public static readonly string WeekCommand = "/week";
     public static readonly string MonthCommand = "/month";
     public static readonly string SearchCommand = "/search";
+    public static readonly string WebCommand = "/web";
 
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<ExpenseHandler> _logger;
     private readonly DatabaseClient _databaseClient;
+
+    private readonly ISessionDatabase _sessionDatabase;
 
     private Dictionary<string, Func<UpdateContext, CancellationToken, Task>> _commandHandlers =
         new Dictionary<string, Func<UpdateContext, CancellationToken, Task>>();
@@ -44,11 +49,11 @@ public class ExpenseHandler : IUpdateHandler
             new BotCommand { Command = YesterdayCommand, Description = "Показать расходы за вчера" },
             new BotCommand { Command = WeekCommand, Description = "Показать расходы c понедельника" },
             new BotCommand { Command = MonthCommand, Description = "Показать расходы с первого числа месяца" },
-            new BotCommand { Command = SearchCommand, Description = "Найти расходы по тексту между двумя датами в формате 'текст ДД.ММ.ГГГГ ДД.ММ.ГГГГ'" }
-
+            new BotCommand { Command = SearchCommand, Description = "Найти расходы по тексту между двумя датами в формате 'текст ДД.ММ.ГГГГ ДД.ММ.ГГГГ'" },
+            new BotCommand { Command = WebCommand, Description = "Создать ссылку на просмотр данных в браузере" }
         ];
 
-    public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger, DatabaseClient databaseClient)
+    public ExpenseHandler(ITelegramBotClient botClient, ILogger<ExpenseHandler> logger, DatabaseClient databaseClient, ISessionDatabase sessionDatabase)
     {
         _botClient = botClient;
         _logger = logger;
@@ -64,8 +69,10 @@ public class ExpenseHandler : IUpdateHandler
         _commandHandlers.Add(WeekCommand, HandleWeekAsync);
         _commandHandlers.Add(MonthCommand, HandleMonthAsync);
         _commandHandlers.Add(SearchCommand, HandleSearchAsync);
+        _commandHandlers.Add(WebCommand, HandleWebAsync);
 
         _databaseClient = databaseClient;
+        _sessionDatabase = sessionDatabase;
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
@@ -383,6 +390,19 @@ public class ExpenseHandler : IUpdateHandler
         catch (Exception ex)
         {
             await _botClient.SendTextMessageAsync(chatId, $"\"Чё-то упало: {ex.Message}");
+        }
+    }
+
+    private async Task HandleWebAsync(UpdateContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _sessionDatabase.CreateSessionAsync(context.ChatId);
+            await _botClient.SendTextMessageAsync(context.ChatId, $"http://localhost:7179/user/{response}", cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _botClient.SendTextMessageAsync(context.ChatId, $"\"Чё-то упало: {ex.Message}");
         }
     }
 

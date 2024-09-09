@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokiwadaiPride.Database", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokiwadaiPride.Database.Client", "TokiwadaiPride.Database.Client\TokiwadaiPride.Database.Client.csproj", "{6CF3EC4C-6050-4A65-9942-50E6ECA42E6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TokiwadaiPride.Web", "TokiwadaiPride.Web\TokiwadaiPride.Web.csproj", "{89EE8590-6AE3-49A9-BC88-1D7B7B04B812}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{6CF3EC4C-6050-4A65-9942-50E6ECA42E6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CF3EC4C-6050-4A65-9942-50E6ECA42E6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CF3EC4C-6050-4A65-9942-50E6ECA42E6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89EE8590-6AE3-49A9-BC88-1D7B7B04B812}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89EE8590-6AE3-49A9-BC88-1D7B7B04B812}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89EE8590-6AE3-49A9-BC88-1D7B7B04B812}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89EE8590-6AE3-49A9-BC88-1D7B7B04B812}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

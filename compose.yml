@@ -1,0 +1,32 @@
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PORT=6379
+  database:
+    build:
+      context: .
+      dockerfile: TokiwadaiPride.Database/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=5051
+    ports:
+      - 5051:5051
+    volumes:
+      - ~/.tokiwadai-pride:/root/.tokiwadai-pride
+  bot:
+    build:
+      context: .
+      dockerfile: TokiwadaiPride.Bot/Dockerfile
+  web:
+    build:
+      context: .
+      dockerfile: TokiwadaiPride.Web/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=5052
+      - ASPNETCORE_HTTPS_PORT=5053
+    ports:
+      - 5052:5052
+      - 5053:5053

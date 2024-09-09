@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using TokiwadaiPride.Database.Client;
 using TokiwadaiPride.Contract.Types;
+using TokiwadaiPride.Redis;
 
 namespace TokiwadaiPride.Bot;
 public class Program
@@ -26,7 +27,7 @@ public class Program
                             TelegramBotClientOptions options = new(botConfig.BotToken);
                             return new TelegramBotClient(options, httpClient);
                         });
-
+                services.AddSessionDatabase();
                 services.AddScoped<DatabaseClient>();
                 services.AddScoped<ExpenseHandler>();
                 services.AddScoped<ReceiverService>();

@@ -32,6 +32,8 @@ internal class Database
             Directory.CreateDirectory(databasesDir);
         }
 
+        _logger.LogError($"Database created at path: {databasesDir}");
+
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tokiwadai-pride", $"{_chatId}.db");
 
         _connection = new SqliteConnection($"Data Source={path}");

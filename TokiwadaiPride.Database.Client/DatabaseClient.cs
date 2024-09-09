@@ -10,6 +10,7 @@ namespace TokiwadaiPride.Database.Client;
 public class DatabaseClient
 {
     private readonly ILogger<DatabaseClient> _logger;
+
     private readonly HttpClient _httpClient;
 
     public DatabaseClient(ILogger<DatabaseClient> logger, IOptions<BotConfiguration> configuration, IHttpClientFactory httpClientFactory)
