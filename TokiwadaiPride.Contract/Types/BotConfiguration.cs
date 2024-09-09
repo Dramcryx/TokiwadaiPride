@@ -7,4 +7,6 @@ public class BotConfiguration
     public string BotToken { get; set; } = "";
 
     public string DatabaseClientUrl { get; set; } = "";
+
+    public string RedisHost { get; set; } = "";
 }
