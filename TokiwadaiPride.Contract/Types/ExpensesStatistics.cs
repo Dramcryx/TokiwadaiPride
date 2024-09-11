@@ -11,7 +11,7 @@ public class ExpensesStatistics
 
     public List<Expense> Top10 { get; private set; }
 
-    private double _bigFilter = 0.0;
+    public double BigFilter { get; private set; } = 0.0;
 
     private ExpensesStatistics()
     {
@@ -28,7 +28,7 @@ public class ExpensesStatistics
             () => {
                 var result = new ExpensesStatistics();
 
-                result._bigFilter = bigFilter;
+                result.BigFilter = bigFilter;
 
                 var top10Expenses = new PriorityQueue<Expense, double>(10, new ExpenseDescendingComparer());
 
@@ -75,7 +75,7 @@ public class ExpensesStatistics
         string dateFormat = "dd MMMM HH:mm";
         return
             $"Всего с {From.ToString(dateFormat)} по {To.ToString(dateFormat)} потрачено {Total:0.00}.\n" +
-            $"Исключая выше {_bigFilter}: {TotalWithoutBig:0.00}.\n\n" +
+            $"Исключая выше {BigFilter}: {TotalWithoutBig:0.00}.\n\n" +
             $"Топ 10 трат:\n{string.Join("\n", Top10.Select(x => x.ToString()))}";
     }
 }

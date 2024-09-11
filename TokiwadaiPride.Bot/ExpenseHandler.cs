@@ -1,10 +1,13 @@
 ﻿using System.Data;
+using System.Globalization;
 using System.Reflection.Metadata;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using TokiwadaiPride.Bot.Helpers;
 using TokiwadaiPride.Contract.Types;
 using TokiwadaiPride.Database.Client;
 using TokiwadaiPride.Redis;
@@ -326,13 +329,13 @@ public class ExpenseHandler : IUpdateHandler
             DateTime? to = null;
             if (args.Length > 1)
             {
-                if (!DateTime.TryParse(args[1], out var result))
-                    await _botClient.SendTextMessageAsync(context.ChatId, $"\"Я не поняла дату {args[1]}");
+                if (!DateTime.TryParseExact(args[1], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
+                    await _botClient.SendTextMessageAsync(context.ChatId, $"Я не поняла дату {args[1]}");
 
                 from = result;
 
-                if (!DateTime.TryParse(args[2], out result))
-                    await _botClient.SendTextMessageAsync(context.ChatId, $"\"Я не поняла дату {args[2]}");
+                if (!DateTime.TryParseExact(args[2], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                    await _botClient.SendTextMessageAsync(context.ChatId, $"Я не поняла дату {args[2]}");
 
                 to = result;
 
@@ -351,10 +354,10 @@ public class ExpenseHandler : IUpdateHandler
             }
 
             string response = "";
-            response += FormatExpensesByDay(expenses) + "\n\n";
+            response += FormatExpensesByDay(expenses) + "\n";
             response += $"Сумма по поиску: {expenses.Sum(x => x.Cost)}\n";
 
-            await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken);
+            await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken, parseMode: ParseMode.Html);
         }
         catch (Exception e)
         {
@@ -381,11 +384,11 @@ public class ExpenseHandler : IUpdateHandler
 
             string response = "";
             if (withExpenseList)
-                response += FormatExpensesByDay(expenses) + "\n\n";
+                response += FormatExpensesByDay(expenses) + "\n";
 
-            response += stats.ToString();
+            response += ExpenseFormatter.Format(stats);
 
-            await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken);
+            await _botClient.SendTextMessageAsync(chatId, response, cancellationToken: cancellationToken, parseMode: ParseMode.Html);
         }
         catch (Exception ex)
         {
@@ -447,10 +450,10 @@ public class ExpenseHandler : IUpdateHandler
     private static string ExpensesGrouppingToString(IGrouping<DateTime, Expense> x)
     {
         // Day: cost sum
-        // Time Name cost
-        // Time Name cost
+        // Name cost
+        // Name cost
         // ...
         return $"{x.Key:M}: {x.Sum(y => y.Cost):0.00}\n"
-            + $"{string.Join("\n", x.Select(y => $"{y.Name} {y.Cost:0.00}"))}\n";
+            + $"{ExpenseFormatter.Format(x.ToList())}\n";
     }
 }
